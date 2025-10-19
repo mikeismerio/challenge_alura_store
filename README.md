@@ -21,6 +21,8 @@ Ayudarás al **Sr. Juan** a decidir **qué tienda vender** para iniciar un nuevo
 
 ## 🗂️ Estructura del Proyecto
 
+```plaintext
+
 challenge_alura_store/
 ├── data/
 │ ├── raw/ # Datos originales
@@ -32,3 +34,4 @@ challenge_alura_store/
 │
 ├── requirements.txt # Dependencias del entorno
 └── README.md
+```
