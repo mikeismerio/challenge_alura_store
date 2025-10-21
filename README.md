@@ -1,4 +1,4 @@
-# 🏪 Alura Store Data Challenge
+# 🏪 Alura Store Data Challenge hi
 
 > 📊 Análisis de ventas, reseñas y rendimiento para identificar la tienda menos eficiente de la cadena **Alura Store**.
 
