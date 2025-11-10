@@ -29,7 +29,7 @@ Conclusión ejecutiva basada en desempeño económico, satisfacción de clientes
 ## 📄 Reporte Final
 
 Visualiza el dashboard y reporte interactivo aquí:  
-👉 **[Abrir Reporte (index.html)](index.html)**
+👉 **[Abrir Reporte (index.html)]**
 
 ---
 
