@@ -77,10 +77,38 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0}
   display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid var(--border);text-decoration:none;color:var(--text)
 }
 .chart{height:260px}
+.mdtitle h1{font-size:1.6rem;margin:.2rem 0}
+.mdtitle blockquote{
+  margin:.6rem 0;padding:.8rem 1rem;border-left:4px solid var(--accent-2);background:rgba(255,255,255,0.03);border-radius:8px
+}
+.bar-wrap{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:160px 1fr 120px;gap:10px;align-items:center}
+.bar-track{height:12px;background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(0,0,0,0.06));border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#87ceeb,#58a6ff);border-radius:6px}
 </style>
 </head>
 <body>
 <div class="container">
+
+  <!-- TÍTULO SOLICITADO -->
+  <section class="card mdtitle">
+    <h1>🏪 Alura Store Data Challenge</h1>
+    <blockquote>📊 Análisis de ventas, reseñas y rendimiento para identificar la tienda menos eficiente de la cadena <strong>Alura Store</strong>.</blockquote>
+  </section>
+
+  <!-- EXPLICACIÓN + GRÁFICO DE INGRESOS POR TIENDA -->
+  <section class="card">
+    <h2>Ingresos por tienda</h2>
+    <p class="small">
+      A continuación se muestra la comparación de <strong>Ingresos Totales ($)</strong> por tienda. El gráfico está ordenado de menor a mayor, similar a un <em>barplot</em> horizontal de seaborn. Las etiquetas al final de cada barra muestran el valor formateado.
+    </p>
+    <div id="store_chart" class="bar-wrap"></div>
+    <p class="note">
+      Fuente esperada: <code>./data/comparativa.csv</code> con columnas <code>tienda,Ingreso Total</code>. Si el archivo no existe, se cargarán datos de demostración.
+    </p>
+  </section>
+
+  <!-- TU HEADER ORIGINAL (COLOMBIA) -->
   <section class="header">
     <div>
       <h1>Ingresos por departamento – Colombia</h1>
@@ -96,7 +124,6 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div class="grid" style="margin-top:16px">
     <section class="card">
       <h2>Hallazgos clave</h2>
-      <!-- TODO: Reemplaza los bullets con tus insights -->
       <ul id="insights">
         <li>Los ingresos se concentran en pocos departamentos (ley de Pareto ~80/20).</li>
         <li>Brecha marcada entre el top 5 y la media nacional.</li>
@@ -158,7 +185,8 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 <script>
 // Utilidades
-const fmtMoney = v => (v||0).toLocaleString("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0});
+const fmtMoney = v => (v||0).toLocaleString("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0});
+const fmtMoneyCol = v => (v||0).toLocaleString("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0});
 const byId = id => document.getElementById(id);
 
 function setUpdated(){
@@ -174,27 +202,54 @@ function csvParse(text){
     const parts = l.split(",");
     const obj = {};
     head.forEach((h,i)=> obj[h] = parts[i] ? parts[i].trim() : "");
-    obj.ingresos = Number(obj.ingresos||0);
+    if("ingresos" in obj) obj.ingresos = Number(obj.ingresos||0);
     return obj;
   });
 }
 
-// Carga CSV si existe (GitHub Pages sirve archivos estáticos en la misma carpeta/repo)
+// Carga CSV si existe (Colombia)
 async function loadData(){
   try{
-    const res = await fetch("./data/ingresos.csv", {cache:"no-store"});
+    const res = await fetch("./data/ingresos.csv",{cache:"no-store"});
     if(!res.ok) throw new Error("sin CSV");
     const txt = await res.text();
-    return csvParse(txt);
+    const rows = csvParse(txt);
+    rows.forEach(r => { r.ingresos = Number(r.ingresos||0); });
+    return rows;
   }catch(e){
     console.warn("No se pudo cargar data/ingresos.csv. Se usará demo.");
-    // Datos demo (edita eliminando este bloque cuando tengas tu CSV)
     return [
-      {NOMBRE_DPT:"Antioquia", ingresos: 1250000000},
-      {NOMBRE_DPT:"Cundinamarca", ingresos: 980000000},
-      {NOMBRE_DPT:"Valle del Cauca", ingresos: 720000000},
-      {NOMBRE_DPT:"Atlántico", ingresos: 240000000},
-      {NOMBRE_DPT:"Bolívar", ingresos: 120000000}
+      {NOMBRE_DPT:"Antioquia", ingresos:1250000000},
+      {NOMBRE_DPT:"Cundinamarca", ingresos:980000000},
+      {NOMBRE_DPT:"Valle del Cauca", ingresos:720000000},
+      {NOMBRE_DPT:"Atlántico", ingresos:240000000},
+      {NOMBRE_DPT:"Bolívar", ingresos:120000000}
+    ];
+  }
+}
+
+// Carga comparativa tiendas
+async function loadComparativa(){
+  try{
+    const res = await fetch("./data/comparativa.csv",{cache:"no-store"});
+    if(!res.ok) throw new Error("sin CSV");
+    const text = await res.text();
+    const lines = text.trim().split(/\r?\n/);
+    const head = lines.shift().split(",");
+    const idxT = head.findIndex(h => h.trim().toLowerCase() === "tienda");
+    const idxI = head.findIndex(h => h.trim().toLowerCase() === "ingreso total");
+    const rows = lines.map(l => {
+      const p = l.split(",");
+      return {tienda:(p[idxT]||"").trim(), ingreso:Number((p[idxI]||"0").replace(/[^\d.-]/g,""))};
+    });
+    return rows;
+  }catch(e){
+    console.warn("No se pudo cargar data/comparativa.csv. Se usará demo.");
+    return [
+      {tienda:"Tienda A", ingreso:185000},
+      {tienda:"Tienda B", ingreso:274000},
+      {tienda:"Tienda C", ingreso:132000},
+      {tienda:"Tienda D", ingreso:325000}
     ];
   }
 }
@@ -203,39 +258,39 @@ function renderTable(rows){
   const tb = document.querySelector("#tbl tbody");
   tb.innerHTML = "";
   let sum = 0;
-  rows.forEach(r=>{
+  rows.forEach(r => {
     sum += r.ingresos||0;
     const tr = document.createElement("tr");
     const td1 = document.createElement("td"); td1.textContent = r.NOMBRE_DPT;
-    const td2 = document.createElement("td"); td2.textContent = fmtMoney(r.ingresos);
+    const td2 = document.createElement("td"); td2.textContent = fmtMoneyCol(r.ingresos);
     tr.appendChild(td1); tr.appendChild(td2);
     tb.appendChild(tr);
   });
-  byId("sum_cell").textContent = fmtMoney(sum);
-  byId("kpi_total").textContent = fmtMoney(sum);
+  byId("sum_cell").textContent = fmtMoneyCol(sum);
+  byId("kpi_total").textContent = fmtMoneyCol(sum);
   const nonZero = rows.filter(r => (r.ingresos||0) > 0).length;
   byId("kpi_count").textContent = String(nonZero);
   const top = [...rows].sort((a,b)=>(b.ingresos||0)-(a.ingresos||0))[0];
-  byId("kpi_top").textContent = top ? `${top.NOMBRE_DPT}: ${fmtMoney(top.ingresos)}` : "—";
+  byId("kpi_top").textContent = top ? `${top.NOMBRE_DPT}: ${fmtMoneyCol(top.ingresos)}` : "—";
 }
 
-// Tabla sortable simple
+// Sortable simple
 (function(){
   const ths = Array.from(document.querySelectorAll("th[data-k]"));
-  ths.forEach(th=>{
+  ths.forEach(th => {
     let dir = -1;
-    th.addEventListener("click", ()=>{
+    th.addEventListener("click", () => {
       const key = th.dataset.k;
       const type = th.dataset.type || "str";
-      const rows = Array.from(document.querySelectorAll("#tbl tbody tr")).map(tr=>{
+      const rows = Array.from(document.querySelectorAll("#tbl tbody tr")).map(tr => {
         const tds = tr.querySelectorAll("td");
         return {
           NOMBRE_DPT: tds[0].textContent,
           ingresos: Number(tds[1].textContent.replace(/[^\d.-]/g,""))
         };
       });
-      rows.sort((a,b)=>{
-        if(type==="num"){ return dir*(a[key]-b[key]); }
+      rows.sort((a,b) => {
+        if(type === "num"){ return dir*(a[key]-b[key]); }
         return dir*String(a[key]).localeCompare(String(b[key]),"es");
       });
       dir *= -1;
@@ -244,12 +299,12 @@ function renderTable(rows){
   });
 })();
 
-// Mini bar chart (no deps)
+// Mini bar chart deptos (ya lo tenías)
 function renderBar(rows){
-  const max = Math.max(...rows.map(r=>r.ingresos||0),1);
+  const max = Math.max(...rows.map(r => r.ingresos||0),1);
   const wrap = byId("bar");
   wrap.innerHTML = "";
-  rows.slice(0,8).forEach(r=>{
+  rows.slice(0,8).forEach(r => {
     const row = document.createElement("div");
     const bar = document.createElement("div");
     const label = document.createElement("div");
@@ -262,10 +317,10 @@ function renderBar(rows){
     bar.style.height = "10px";
     bar.style.background = "linear-gradient(90deg,var(--accent),var(--accent-2))";
     bar.style.borderRadius = "6px";
-    bar.style.width = `${Math.max(2, (r.ingresos||0)/max*100)}%`;
+    bar.style.width = `${Math.max(2,(r.ingresos||0)/max*100)}%`;
     barFill.appendChild(bar);
     const val = document.createElement("div");
-    val.textContent = fmtMoney(r.ingresos);
+    val.textContent = fmtMoneyCol(r.ingresos);
     val.style.textAlign = "right";
     row.appendChild(label);
     row.appendChild(barFill);
@@ -274,12 +329,41 @@ function renderBar(rows){
   });
 }
 
+// Barplot “seaborn-like” para tiendas
+function renderStoreChart(rows){
+  const data = [...rows].sort((a,b) => a.ingreso - b.ingreso);
+  const max = Math.max(...data.map(r => r.ingreso||0),1);
+  const wrap = byId("store_chart");
+  wrap.innerHTML = "";
+  data.forEach((r,i) => {
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    const label = document.createElement("div");
+    label.textContent = r.tienda;
+    const track = document.createElement("div");
+    track.className = "bar-track";
+    const fill = document.createElement("div");
+    fill.className = "bar-fill";
+    fill.style.width = `${Math.max(2,(r.ingreso||0)/max*100)}%`;
+    track.appendChild(fill);
+    const val = document.createElement("div");
+    val.textContent = fmtMoney(r.ingreso);
+    val.style.textAlign = "right";
+    row.appendChild(label);
+    row.appendChild(track);
+    row.appendChild(val);
+    wrap.appendChild(row);
+  });
+}
+
 (async function init(){
   setUpdated();
-  const data = await loadData();
-  const sorted = data.sort((a,b)=>(b.ingresos||0)-(a.ingresos||0));
-  renderTable(sorted);
-  renderBar(sorted);
+  const dataDeptos = await loadData();
+  const sortedDeptos = dataDeptos.sort((a,b) => (b.ingresos||0)-(a.ingresos||0));
+  renderTable(sortedDeptos);
+  renderBar(sortedDeptos);
+  const comp = await loadComparativa();
+  renderStoreChart(comp);
 })();
 </script>
 </body>
