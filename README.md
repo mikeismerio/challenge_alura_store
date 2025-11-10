@@ -4,12 +4,6 @@
 
 ---
 
-## 📘 Descripción General
-
-Ayudarás al **Sr. Juan** a decidir **qué tienda vender** para iniciar un nuevo emprendimiento. Analizarás datos de **ventas, reseñas y desempeño** de las **4 tiendas** y entregarás una **recomendación sustentada en datos**.
-
----
-
 ## 🎯 Objetivos del Proyecto
 
 ### ✅ 1. Limpieza y preparación de datos
