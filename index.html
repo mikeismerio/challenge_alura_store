@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingresos por departamento – Reporte</title>
+<meta name="description" content="Reporte interactivo de ingresos por departamento (Colombia) con mapa y tabla.">
+<style>
+:root{
+  --bg:#0b0f14;
+  --card:#141a21;
+  --text:#e6edf3;
+  --muted:#9fb0c0;
+  --accent:#72d49f;
+  --accent-2:#58a6ff;
+  --warn:#ffd782;
+  --border:#243041;
+}
+@media (prefers-color-scheme:light){
+  :root{
+    --bg:#fbfbfc;
+    --card:#ffffff;
+    --text:#1b2430;
+    --muted:#5b6b7b;
+    --accent:#0ea5e9;
+    --accent-2:#10b981;
+    --warn:#a16207;
+    --border:#e6eaf0;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  background:linear-gradient(180deg,var(--bg),#0b0f14 60%);
+  color:var(--text);
+  line-height:1.55;
+}
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+.header{
+  display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+  padding:20px;border:1px solid var(--border);border-radius:16px;background:linear-gradient(180deg,var(--card),rgba(255,255,255,0.02));
+  box-shadow:0 6px 30px rgba(0,0,0,0.15);
+}
+h1{font-size:clamp(1.4rem,2.8vw,2rem);margin:0}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{
+  padding:6px 10px;border:1px solid var(--border);border-radius:999px;font-size:.85rem;color:var(--muted);
+  background:rgba(255,255,255,.03)
+}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:960px){.grid{grid-template-columns:1.2fr .8fr}}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1)
+}
+.card h2{margin:.2rem 0 1rem 0;font-size:1.1rem;color:var(--accent)}
+.card p, .card li{color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+.kpi{padding:12px;border:1px dashed var(--border);border-radius:12px;text-align:center}
+.kpi .v{font-weight:700;font-size:1.1rem;color:var(--text)}
+.kpi .l{font-size:.8rem;color:var(--muted)}
+iframe{width:100%;min-height:520px;border:0;border-radius:12px;overflow:hidden;background:#0a0a0a}
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px}
+table{width:100%;border-collapse:collapse;background:transparent}
+th,td{padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-weight:600;text-align:left;color:var(--text);cursor:pointer;position:sticky;top:0;background:var(--card)}
+td{color:var(--muted)}
+tfoot td{font-weight:700;color:var(--text)}
+.small{font-size:.9rem}
+footer{color:var(--muted);text-align:center;margin:24px 0}
+.note{font-size:.9rem;color:var(--muted)}
+hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0}
+.legend{font-size:.85rem;color:var(--muted)}
+.btn{
+  display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid var(--border);text-decoration:none;color:var(--text)
+}
+.chart{height:260px}
+</style>
+</head>
+<body>
+<div class="container">
+  <section class="header">
+    <div>
+      <h1>Ingresos por departamento – Colombia</h1>
+      <div class="legend">Reporte interactivo (mapa + tabla) generado con Python/Folium.</div>
+    </div>
+    <div class="badges">
+      <span class="badge">Fuente: dataset propio</span>
+      <span class="badge">Última actualización: <span id="updated">—</span></span>
+      <a class="badge btn" href="./map.html">Abrir mapa en pestaña nueva</a>
+    </div>
+  </section>
+
+  <div class="grid" style="margin-top:16px">
+    <section class="card">
+      <h2>Hallazgos clave</h2>
+      <!-- TODO: Reemplaza los bullets con tus insights -->
+      <ul id="insights">
+        <li>Los ingresos se concentran en pocos departamentos (ley de Pareto ~80/20).</li>
+        <li>Brecha marcada entre el top 5 y la media nacional.</li>
+        <li>Departamentos sin ventas reportadas resaltan en rojo tenue en el mapa.</li>
+      </ul>
+      <div class="kpis">
+        <div class="kpi"><div class="v" id="kpi_total">$0</div><div class="l">Ingresos totales</div></div>
+        <div class="kpi"><div class="v" id="kpi_count">0</div><div class="l">Deptos con ventas</div></div>
+        <div class="kpi"><div class="v" id="kpi_top">—</div><div class="l">Top departamento</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Metodología breve</h2>
+      <p class="small">
+        Se geocodificaron los puntos en coordenadas (lon, lat) y se asignaron a polígonos de
+        <code>NOMBRE_DPT</code> por cobertura geométrica. Se agregaron ingresos (<code>sum</code> de <code>precio</code>)
+        y se construyó el mapa con <strong>Folium Choropleth</strong> + <strong>GeoJsonTooltip</strong>.
+      </p>
+      <hr class="sep">
+      <p class="note">
+        Para reproducir el mapa, exporta desde Python: <code>m.save("map.html")</code>, y publica este sitio en GitHub Pages.
+      </p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Mapa interactivo</h2>
+    <p class="note">El mapa se incrusta desde <code>map.html</code>. Si no lo ves, asegúrate de exportarlo y colocarlo junto a este archivo.</p>
+    <iframe src="./map.html" title="Mapa de ingresos por departamento"></iframe>
+  </section>
+
+  <section class="card">
+    <h2>Tabla y top departamentos</h2>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th data-k="NOMBRE_DPT">Departamento</th>
+            <th data-k="ingresos" data-type="num">Ingresos ($)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td id="sum_cell">$0</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="chart" id="bar"></div>
+  </section>
+
+  <footer>
+    Hecho con ❤️ en Python + Folium. Licencia MIT.
+  </footer>
+</div>
+
+<script>
+// Utilidades
+const fmtMoney = v => (v||0).toLocaleString("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0});
+const byId = id => document.getElementById(id);
+
+function setUpdated(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  byId("updated").textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function csvParse(text){
+  const lines = text.trim().split(/\r?\n/);
+  const head = lines.shift().split(",");
+  return lines.map(l => {
+    const parts = l.split(",");
+    const obj = {};
+    head.forEach((h,i)=> obj[h] = parts[i] ? parts[i].trim() : "");
+    obj.ingresos = Number(obj.ingresos||0);
+    return obj;
+  });
+}
+
+// Carga CSV si existe (GitHub Pages sirve archivos estáticos en la misma carpeta/repo)
+async function loadData(){
+  try{
+    const res = await fetch("./data/ingresos.csv", {cache:"no-store"});
+    if(!res.ok) throw new Error("sin CSV");
+    const txt = await res.text();
+    return csvParse(txt);
+  }catch(e){
+    console.warn("No se pudo cargar data/ingresos.csv. Se usará demo.");
+    // Datos demo (edita eliminando este bloque cuando tengas tu CSV)
+    return [
+      {NOMBRE_DPT:"Antioquia", ingresos: 1250000000},
+      {NOMBRE_DPT:"Cundinamarca", ingresos: 980000000},
+      {NOMBRE_DPT:"Valle del Cauca", ingresos: 720000000},
+      {NOMBRE_DPT:"Atlántico", ingresos: 240000000},
+      {NOMBRE_DPT:"Bolívar", ingresos: 120000000}
+    ];
+  }
+}
+
+function renderTable(rows){
+  const tb = document.querySelector("#tbl tbody");
+  tb.innerHTML = "";
+  let sum = 0;
+  rows.forEach(r=>{
+    sum += r.ingresos||0;
+    const tr = document.createElement("tr");
+    const td1 = document.createElement("td"); td1.textContent = r.NOMBRE_DPT;
+    const td2 = document.createElement("td"); td2.textContent = fmtMoney(r.ingresos);
+    tr.appendChild(td1); tr.appendChild(td2);
+    tb.appendChild(tr);
+  });
+  byId("sum_cell").textContent = fmtMoney(sum);
+  byId("kpi_total").textContent = fmtMoney(sum);
+  const nonZero = rows.filter(r => (r.ingresos||0) > 0).length;
+  byId("kpi_count").textContent = String(nonZero);
+  const top = [...rows].sort((a,b)=>(b.ingresos||0)-(a.ingresos||0))[0];
+  byId("kpi_top").textContent = top ? `${top.NOMBRE_DPT}: ${fmtMoney(top.ingresos)}` : "—";
+}
+
+// Tabla sortable simple
+(function(){
+  const ths = Array.from(document.querySelectorAll("th[data-k]"));
+  ths.forEach(th=>{
+    let dir = -1;
+    th.addEventListener("click", ()=>{
+      const key = th.dataset.k;
+      const type = th.dataset.type || "str";
+      const rows = Array.from(document.querySelectorAll("#tbl tbody tr")).map(tr=>{
+        const tds = tr.querySelectorAll("td");
+        return {
+          NOMBRE_DPT: tds[0].textContent,
+          ingresos: Number(tds[1].textContent.replace(/[^\d.-]/g,""))
+        };
+      });
+      rows.sort((a,b)=>{
+        if(type==="num"){ return dir*(a[key]-b[key]); }
+        return dir*String(a[key]).localeCompare(String(b[key]),"es");
+      });
+      dir *= -1;
+      renderTable(rows);
+    });
+  });
+})();
+
+// Mini bar chart (no deps)
+function renderBar(rows){
+  const max = Math.max(...rows.map(r=>r.ingresos||0),1);
+  const wrap = byId("bar");
+  wrap.innerHTML = "";
+  rows.slice(0,8).forEach(r=>{
+    const row = document.createElement("div");
+    const bar = document.createElement("div");
+    const label = document.createElement("div");
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "120px 1fr 120px";
+    row.style.gap = "10px";
+    row.style.alignItems = "center";
+    label.textContent = r.NOMBRE_DPT;
+    const barFill = document.createElement("div");
+    bar.style.height = "10px";
+    bar.style.background = "linear-gradient(90deg,var(--accent),var(--accent-2))";
+    bar.style.borderRadius = "6px";
+    bar.style.width = `${Math.max(2, (r.ingresos||0)/max*100)}%`;
+    barFill.appendChild(bar);
+    const val = document.createElement("div");
+    val.textContent = fmtMoney(r.ingresos);
+    val.style.textAlign = "right";
+    row.appendChild(label);
+    row.appendChild(barFill);
+    row.appendChild(val);
+    wrap.appendChild(row);
+  });
+}
+
+(async function init(){
+  setUpdated();
+  const data = await loadData();
+  const sorted = data.sort((a,b)=>(b.ingresos||0)-(a.ingresos||0));
+  renderTable(sorted);
+  renderBar(sorted);
+})();
+</script>
+</body>
+</html>
