@@ -12,37 +12,34 @@ Ayudarás al **Sr. Juan** a decidir **qué tienda vender** para iniciar un nuevo
 
 ## 🎯 Objetivos del Proyecto
 
-### ✅ 1. Manipulación y limpieza de datos  
-- Carga de archivos CSV con **pandas**.  
-- Normalización de columnas, conversión de tipos y tratamiento de nulos.  
-- Construcción de datasets consolidados (`raw → processed`).
+### ✅ 1. Limpieza y preparación de datos
+Unificación de archivos CSV, depuración, estandarización y generación del dataset final.
+Notebook: **[01_eda_preparacion.ipynb](notebooks/01_eda_preparacion.ipynb)**  
 
-### ✅ 2. Análisis Exploratorio (EDA)  
-- Ingresos totales por tienda.  
-- Margen bruto estimado.  
-- Ticket promedio.  
-- Ranking de vendedores.  
-- Distribución de calificaciones y % de reseñas negativas.  
-- Tendencias de ventas a nivel mensual y trimestral.  
 
-### ✅ 3. Visualización de Datos  
-Creación de más de **3 visualizaciones** con **matplotlib**, **seaborn** y **folium**, como:
+### ✅ 2. Análisis Exploratorio (EDA)
+Exploración de ingresos, márgenes, tickets promedio, reseñas y estabilidad comercial.
+Notebook: **[02_visualizaciones_ingresos.ipynb](notebooks/02_visualizaciones_ingresos.ipynb)**  
 
-- Gráficos comparativos de ingresos y margen.  
-- Mapas de calor por tienda y lugar de compra.  
-- Series temporales mensuales y trimestrales.  
-- Choropleth por departamento (mapa interactivo).  
 
-### ✅ 4. Recomendación Ejecutiva  
-Basada en:
+### ✅ 3. Visualización
+Generación de gráficos y mapas interactivos para entender el comportamiento de cada tienda.
+Notebook: **[03_mapas.ipynb](notebooks/03_mapas.ipynb)**  
 
-- Ingresos  
-- Margen  
-- Ticket promedio  
-- Estabilidad mensual  
-- Participación por categorías  
-- Rendimiento de vendedores  
-- Calificaciones y reseñas  
+
+### ✅ 4. Recomendación
+Conclusión ejecutiva basada en desempeño económico, satisfacción de clientes y consistencia mensual.
+
+---
+
+## 📄 Reporte Final
+
+Visualiza el dashboard y reporte interactivo aquí:  
+👉 **[Abrir Reporte (index.html)](index.html)**
+
+---
+
+
 
 ---
 
@@ -51,6 +48,7 @@ Basada en:
 ```plaintext
 
 challenge_alura_store/
+├── .venv/
 ├── data/
 │   ├── raw/
 │   │   ├── tienda_1.csv
@@ -61,10 +59,12 @@ challenge_alura_store/
 │       ├── tiendas.csv
 │       └── tiendas_con_margen.csv
 ├── notebooks/
-│   ├── 01_analisis.ipynb            # EDA + métricas base
-│   ├── 02_visualizaciones.ipynb     # gráficas comparativas + mapas + series
-│   └── assets/
-│       └── colombia.geo.json         # recurso para mapas
-├── requirements.txt
+│   ├── 01_eda_preparacion.ipynb
+│   ├── 02_visualizaciones_ingresos.ipynb
+│   └── 03_mapas.ipynb
+├── src/
+│   └── colombia.geo.json
+├── index.html
+├── map.html
 └── README.md
 ```
